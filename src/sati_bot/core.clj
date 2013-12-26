@@ -4,11 +4,12 @@
   )
 
 (defn load-credentials
+  "Get login-credentials from an EDN file."
   ([] (load-credentials "resources/credentials.edn"))
   ([filename]
    (edn/read-string (slurp filename))))
 
-(defn- weekday-name [date]
+(defn- weekday-name "Display names for the week-days." [date]
   (case (time/day-of-week date)
     1 "Monday"
     2 "Tuesday"
@@ -20,7 +21,7 @@
     "Error"
     ))
 
-(defn- month-name [date]
+(defn- month-name "Display names for the months." [date]
   (case (time/month date)
     1 "January"
     2 "February"
@@ -38,11 +39,23 @@
     "Error"
     ))
 
+(defn- ending "Find the number ending to make 1st, 2nd, 3rd..."[number]
+  (case number
+    11 "th"
+    12 "th"
+    13 "th"
+    (case (mod number 10)
+      1 "st"
+      2 "nd"
+      3 "rd"
+      "th")))
 
 (defn checkin-title [date]
   (let[day-of-month (time/day date)
-       ending (case day-of-month 11 "th" 12 "th" 13 "th" (case (mod day-of-month 10) 1 "st" 2 "nd" 3 "rd" "th"))]
+       ending (ending day-of-month)]
     (str "Daily Check-in: " (weekday-name date) ", " (month-name date) " " day-of-month ending)))
+
+
 
 
 

@@ -1,6 +1,5 @@
 (ns sati-bot.reddit
-  (:use [sati-bot.core])
-  (:require [clj-time.core]
+  (:require [sati-bot.core :as core]
             [clojure.data.json :as json]
             [clojure.java.io :as io])
   (:import [java.net URL HttpURLConnection URLEncoder])
@@ -19,7 +18,7 @@
 (defn request "Prepare a request to reddit, based on a request map.
   This is a pure function and does no IO - call .connect on the returned URLConnection object to do that."
   [{:keys [URL method data cookie modhash]}]
-  (let[URL (if (instance? java.net.URL URL) URL (URL. URL))
+  (let[URL (if (instance? java.net.URL URL) URL (URL. (str reddit-api URL))) ;Coerce to java.net.URL if not already an instance.
        conn (.openConnection URL)
        ]
     (.setRequestMethod conn method)
@@ -36,7 +35,7 @@
   "Make a request map for logging in as the user with given credentials.
   This call returns cookies and modhashes identifying the user account and session, which some calls require."
   [{:keys [username password] :as credentials}]
-  {:URL (str reddit-api "login")
+  {:URL "login"
    :method "POST"
    :data {"api_type" "json"
           "user" username
@@ -45,7 +44,7 @@
 
 (def me "A request map for the 'me' call."
   {:method "GET"
-   :URL (str reddit-api "me.json")
+   :URL "me.json"
    })
 
 (defn get-session-data
@@ -77,7 +76,7 @@
   * :resubmit true asks reddit to resubmit the link in the case that it's already posted to the subreddit."
   [title subreddit & options]
   (let[{:keys [kind link URL text resubmit] } (apply hash-map options)
-       kind (if (not (nil? kind)) kind (if link "link" "text"))
+       kind (if (string? kind) kind (if link "link" "text"))
        resubmit (if resubmit true false)]
     {:URL (str reddit-api "submit")
      :method "POST"
@@ -89,19 +88,4 @@
             "resubmit" resubmit
             "then" "comments"}
      }))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
