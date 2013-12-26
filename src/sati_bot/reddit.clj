@@ -24,8 +24,8 @@
        ]
     (.setRequestMethod conn method)
     (.setRequestProperty conn "User-Agent" "sati_bot/0.1.0 by lobsang_ludd")
-    (when cookie (.setRequestProperty "Cookie" cookie))
-    (when modhash (.setRequestProperty "X-Modhash" modhash))
+    (when cookie (.setRequestProperty conn "Cookie" cookie))
+    (when modhash (.setRequestProperty conn "X-Modhash" modhash))
     (when (and (= "POST" method) data)
       (.setDoOutput conn true)
       (spit (.getOutputStream conn) (post-content data))
@@ -58,13 +58,37 @@
        ]
     {:cookie cookie :modhash modhash}))
 
+(defn do-login
+  "Convenience function: Logs in with the given credentials, reads the returned HTML and makes a session map.
+  Merge this into subsequent request maps to identify the user and session."
+  [{:keys [username password] :as credentials}]
+  (-> credentials
+      login
+      request
+      get-session-data))
 
-(let[test (login (load-credentials))
-     req (request test)]
-  (get-session-data req)
-  )
+(defn submit
+  "Make a request map for submitting new content to reddit.
+  Takes a title, target subreddit and keyword/value pair options.
 
-
+  * :link true or :kind 'link' make a link post, otherwise defaults to kind 'text'
+  * :URL must accompany a link post and is the URL pointed to.
+  * :text is optional and if provided will be the (Markdown formatted) body of the text post.
+  * :resubmit true asks reddit to resubmit the link in the case that it's already posted to the subreddit."
+  [title subreddit & options]
+  (let[{:keys [kind link URL text resubmit] } (apply hash-map options)
+       kind (if (not (nil? kind)) kind (if link "link" "text"))
+       resubmit (if resubmit true false)]
+    {:URL (str reddit-api "submit")
+     :method "POST"
+     :data {"title" title
+            "sr" subreddit
+            "kind" kind
+            "text" text
+            "url" URL
+            "resubmit" resubmit
+            "then" "comments"}
+     }))
 
 
 
