@@ -34,7 +34,7 @@
 
 (defn login
   "Make a request map for logging in as the user with given credentials.
-  This returns cookies and modhashes identifying the user account and session, which some calls require."
+  This call returns cookies and modhashes identifying the user account and session, which some calls require."
   [{:keys [username password] :as credentials}]
   {:URL (str reddit-api "login")
    :method "POST"
@@ -59,7 +59,7 @@
     {:cookie cookie :modhash modhash}))
 
 (defn do-login
-  "Convenience function: Logs in with the given credentials, reads the returned HTML and makes a session map.
+  "Convenience function: Logs in with the given credentials, reads the returned message and makes a session map.
   Merge this into subsequent request maps to identify the user and session."
   [{:keys [username password] :as credentials}]
   (-> credentials
