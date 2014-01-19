@@ -103,7 +103,7 @@
   (let[executor (ScheduledThreadPoolExecutor. 1)
        first-start-date (time/plus (time/to-time-zone (time/now) target-time-zone) (time/days 1))
        start-time (start-of-day first-start-date)
-       initial-delay (time/in-secs (time/interval) (time/now) start-time)
+       initial-delay (time/in-secs (time/interval (time/now) start-time))
        schedule-fn (fn [executor] (.scheduleAtFixedRate executor post-checkin 0 1 TimeUnit/DAYS))
        ;;Do post-checkin 0 days from now and every 1 days after
        ;;Exploit that Clojure fns implement Runnable and can run directly in Executors.
