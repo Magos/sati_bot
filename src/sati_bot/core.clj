@@ -87,14 +87,14 @@
        ]
     (if (contains? used-titles title) ;;If we've posted today
       nil ;; then no-op.
-      (reddit/request (make-checkin)) ;;Else actually make the post.
+      (reddit/request (make-checkin) session-data) ;;Else actually make the post.
       )))
 
 (defn- start-of-day
   "Get the start of the given day."
   [datetime]
   (let[next-day (time/plus datetime (time/days 1))
-       start (time/date-time (time/year next-day) (time/month next-day) (time/day next-day))]
+       start (time/date-time (time/year next-day) (time/month next-day) (time/day next-day) 0 1)]
     (time/from-time-zone start target-time-zone)))
 
 (defn -main
@@ -103,10 +103,10 @@
   (let[executor (ScheduledThreadPoolExecutor. 1)
        first-start-date (time/plus (time/to-time-zone (time/now) target-time-zone) (time/days 1))
        start-time (start-of-day first-start-date)
-       initial-delay (time/in-secs (time/interval (time/now) start-time))
-       schedule-fn (fn [executor] (.scheduleAtFixedRate executor post-checkin 0 1 TimeUnit/DAYS))
+       initial-delay (long (time/in-seconds (time/interval (time/now) start-time)))
+       schedule-fn (fn [] (.scheduleAtFixedRate executor post-checkin 0 1 TimeUnit/DAYS))
        ;;Do post-checkin 0 days from now and every 1 days after
        ;;Exploit that Clojure fns implement Runnable and can run directly in Executors.
 
        ]
-    (.schedule executor schedule-fn initial-delay TimeUnit/SECONDS)))
+    (.schedule executor ^Runnable schedule-fn initial-delay TimeUnit/SECONDS)))
