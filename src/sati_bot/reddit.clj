@@ -4,7 +4,9 @@
   (:import [java.net URL HttpURLConnection URLEncoder])
   )
 
-(def reddit-api "http://www.reddit.com/api/")
+(def reddit "http://www.reddit.com/")
+(def reddit-api (str reddit "api/"))
+
 (def url-encoded "application/x-www-form-urlencoded")
 
 (defn- post-content
@@ -67,9 +69,9 @@
   "Make a request map for submitting new content to reddit.
   Takes a title, target subreddit and keyword/value pair options.
 
-  * :link true or :kind 'link' make a link post, otherwise defaults to kind 'text'
+  * :link true or :kind 'link' make a link post, otherwise defaults to kind 'self'
   * :URL must accompany a link post and is the URL pointed to.
-  * :text is optional and if provided will be the (Markdown formatted) body of the text post.
+  * :text is optional and if provided will be the (Markdown formatted) body of a self post.
   * :resubmit true asks reddit to resubmit the link in the case that it's already posted to the subreddit."
   [title subreddit & options]
   (let[{:keys [kind link URL text resubmit] } options
@@ -88,3 +90,34 @@
                             "api-type" "json"})
      }))
 
+
+(defn submissions
+  "API call to get the most recent submissions of a given user"
+  [username]
+  {:url (str reddit "user/" username "/submitted.json"
+             )
+   :method :get
+   :content-type url-encoded
+   :body (post-content {"show" "given"
+                        "sort" "new"
+                        "t" "all"
+                        "username" username
+                        "limit" 10
+                        })
+
+
+   })
+
+(defn submissions-listing
+  "Get a vector of submissions out of a 'submitted' API response."
+  [response]
+  (let[json (json/read-str (:body response) :key-fn keyword)]
+    (get-in json [:data :children])))
+
+(defn get-submissions
+  "Convenience function: Get a 'submitted' listing for the newest posts by a given username and return a vector of the posts."
+  [username]
+  (-> username
+      submissions
+      request
+      submissions-listing))
