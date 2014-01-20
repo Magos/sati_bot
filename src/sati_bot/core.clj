@@ -6,7 +6,7 @@
   (:gen-class)
   )
 
-(def target-time-zone (time/time-zone-for-offset -11))
+(def target-time-zone (time/time-zone-for-offset +12))
 
 (defn load-credentials
   "Get login-credentials from an EDN file."
@@ -66,7 +66,6 @@
   ([](make-checkin (time/now)))
   ([date]
    (let[adjusted (time/to-time-zone date target-time-zone)
-        ;;UTC-11 is the earliest time-zone with permanent inhabitants, so use that.
         title (checkin-title adjusted)
 
         ]
@@ -83,7 +82,7 @@
        the-time (time/to-time-zone (time/now) target-time-zone) ;;Get today's time
        title (checkin-title the-time) ;;Get today's title.
        last-posts (reddit/get-submissions "sati_bot")
-       used-titles (into #{} (map (comp :data :title) last-posts)) ;;Get the last few titles posted.
+       used-titles (into #{} (map (comp :title :data ) last-posts)) ;;Get the last few titles posted.
        ]
     (if (contains? used-titles title) ;;If we've posted today
       nil ;; then no-op.
