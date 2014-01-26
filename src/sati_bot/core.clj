@@ -6,7 +6,8 @@
   (:gen-class)
   )
 
-(def target-time-zone (time/time-zone-for-offset +12))
+(def ^:dynamic *target-time-zone* (time/time-zone-for-offset +12))
+(def ^:dynamic *target-subreddit* "dailypractice")
 
 (defn load-credentials
   "Get login-credentials from an EDN file."
@@ -65,11 +66,11 @@
   "Make a checkin post request map for a given day, defaulting to the call-time."
   ([](make-checkin (time/now)))
   ([date]
-   (let[adjusted (time/to-time-zone date target-time-zone)
+   (let[adjusted (time/to-time-zone date *target-time-zone*)
         title (checkin-title adjusted)
 
         ]
-     (reddit/submit title "sati_bot"))))
+     (reddit/submit title *target-subreddit*))))
 
 
 (defn post-checkin
@@ -79,7 +80,7 @@
   * Submit the post."
   []
   (let[session-data (reddit/do-login (load-credentials))
-       the-time (time/to-time-zone (time/now) target-time-zone) ;;Get today's time
+       the-time (time/to-time-zone (time/now) *target-time-zone*) ;;Get today's time
        title (checkin-title the-time) ;;Get today's title.
        last-posts (reddit/get-submissions "sati_bot")
        used-titles (into #{} (map (comp :title :data ) last-posts)) ;;Get the last few titles posted.
@@ -94,13 +95,13 @@
   [datetime]
   (let[next-day (time/plus datetime (time/days 1))
        start (time/date-time (time/year next-day) (time/month next-day) (time/day next-day) 0 1)]
-    (time/from-time-zone start target-time-zone)))
+    (time/from-time-zone start *target-time-zone*)))
 
 (defn -main
   "Schedule the running of check-in jobs."
   [& args]
   (let[executor (ScheduledThreadPoolExecutor. 1)
-       first-start-date (time/plus (time/to-time-zone (time/now) target-time-zone) (time/days 1))
+       first-start-date (time/plus (time/to-time-zone (time/now) *target-time-zone*) (time/days 1))
        start-time (start-of-day first-start-date)
        initial-delay (long (time/in-seconds (time/interval (time/now) start-time)))
        schedule-fn (fn [] (.scheduleAtFixedRate executor post-checkin 0 1 TimeUnit/DAYS))
