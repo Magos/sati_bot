@@ -93,8 +93,7 @@
 (defn- start-of-day
   "Get the start of the given day."
   [datetime]
-  (let[next-day (time/plus datetime (time/days 1))
-       start (time/date-time (time/year next-day) (time/month next-day) (time/day next-day) 0 1)]
+  (let[start (time/date-time (time/year datetime) (time/month datetime) (time/day datetime) 0 1)]
     (time/from-time-zone start *target-time-zone*)))
 
 (defn -main
@@ -110,3 +109,4 @@
 
        ]
     (.schedule executor ^Runnable schedule-fn initial-delay TimeUnit/SECONDS)))
+
