@@ -2,9 +2,9 @@
   (:require [sati-bot.reddit :as reddit]
             [clojure.edn :as edn]
             [clj-time.core :as time]
-            [clj-time.coerce :as coerce])
-  (:import [org.joda.time DateTime]
-           [java.util Date]))
+            [clj-time.coerce :as coerce]
+            [clojure.string :as string])
+  (:import [org.joda.time DateTime]))
 
 #_(def *request* (-> "sati_bot"
     reddit/submissions
@@ -16,6 +16,7 @@
 (defrecord streak [^long streak ^long max ^DateTime last-seen])
 
 (defn- seen-recently?
+  "Last seen within 6 months?"
   [arg]
   (time/before? (-> 6 time/months time/ago) (-> arg second :last-seen) ))
 
@@ -30,5 +31,17 @@
     (into {} (filter seen-recently? raw)) ;; Remove users who aren't participating any more.
     ))
 
-
-(load-streaks-file)
+(defn- markdown-table
+  "Create Markdown for a table displaying a collection
+  Columns defines the columns to show - give pairs of accessor sequence and display names."
+  [columns coll]
+  (let[columnsdef (str "|" (string/join "|" (concat (map second columns)
+                                                    "\n"
+                                                    ;;All columns are center aligned, for now.
+                                                    (map (constantly ":--:") columns)))
+                       "\n")
+       accessors (for [[x _] columns] (apply comp (reverse x))) ;;Reverse so composition is leftmost-first
+       row-fn (apply juxt accessors)
+       rows (map row-fn coll)
+       formatted (flatten (interpose "\n" rows))
+       ](string/join "|" (cons  columnsdef formatted))))
