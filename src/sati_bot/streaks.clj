@@ -1,7 +1,8 @@
 (ns sati-bot.streaks
   (:require [sati-bot.reddit :as reddit]
             [clojure.edn :as edn]
-            [clj-time.core :as time])
+            [clj-time.core :as time]
+            [clj-time.coerce :as coerce])
   (:import [org.joda.time DateTime]
            [java.util Date]))
 
@@ -12,25 +13,22 @@
     ))
 
 
-(defrecord streak [^long streak ^long max last-seen])
+(defrecord streak [^long streak ^long max ^DateTime last-seen])
 
 (defn- seen-recently?
   [arg]
-  arg
-  )
+  (time/before? (-> 6 time/months time/ago) (-> arg second :last-seen) ))
 
 (defn load-streaks-file
-  "Loads an edn file with streaks data."
+  "Loads (and filters for age) an EDN file with streaks data. "
   []
-  (let[raw (edn/read-string (slurp "resources/streaks.edn"))]
+  (let[raw (edn/read-string {:readers
+                             ;;streak needs its own reader because DateTime lacks one.
+                             ;;store as java.util.Date which default reader supports, reinflate using clj-time.coerce
+                             {'sati_bot.streaks.streak (comp map->streak #(update-in % [:last-seen] coerce/from-date))}}
+                            (slurp "resources/streaks.edn"))]
     (into {} (filter seen-recently? raw)) ;; Remove users who aren't participating any more.
     ))
-#_
-(load-streaks-file)
 
-#_
-(let[streak (streak. 1 1 (.toDate (time/now)))
-     streaks {"lobsang_ludd" streak}]
-  (with-open[writer (clojure.java.io/writer "resources/streaks.edn")]
-    (.write writer (pr-str streaks))
-    ))
+
+(load-streaks-file)
