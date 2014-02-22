@@ -1,7 +1,6 @@
 (ns sati-bot.reddit
   (:require [clojure.data.json :as json]
-            [clj-http.client :as client]
-            [clj-time.coerce :as coerce])
+            [clj-http.client :as client])
   (:import [java.net URL HttpURLConnection URLEncoder])
   )
 
@@ -122,26 +121,3 @@
       submissions
       request
       submissions-listing))
-
-(defn comments
-  "Request map for finding the comments on a link or self post.
-  Note: article should be the ID36 value defined by reddit on posting."
-  [subreddit article]
-  {:method :get
-   :url (str reddit "r/" subreddit "/comments/" article ".json")
-   :body (post-content {"article" article
-                        "sort" "top"})
-   }
-  )
-
-(defn get-commenters
-  "Get a seq of comment author/timestamp pairs from a comments listing."
-  [listing]
-  (->> (json/read-str (:body listing) :key-fn keyword )
-       second
-       :data
-       :children
-       (map (comp (juxt :author :created_utc) :data))
-       (map #(update-in % [1] (comp coerce/from-long (partial * 1000) long))) ;;Reddit timestamps in seconds, not millis.
-       ))
-
