@@ -6,13 +6,6 @@
             [clojure.string :as string])
   (:import [org.joda.time DateTime]))
 
-#_(def *request* (-> "sati_bot"
-    reddit/submissions
-    reddit/request
-    reddit/submissions-listing
-    ))
-
-
 (defrecord streak [^long streak ^long max ^DateTime last-seen])
 
 (defn- seen-recently?
@@ -31,17 +24,25 @@
     (into {} (filter seen-recently? raw)) ;; Remove users who aren't participating any more.
     ))
 
-(defn- markdown-table
-  "Create Markdown for a table displaying a collection
-  Columns defines the columns to show - give pairs of accessor sequence and display names."
-  [columns coll]
-  (let[columnsdef (str "|" (string/join "|" (concat (map second columns)
-                                                    "\n"
-                                                    ;;All columns are center aligned, for now.
-                                                    (map (constantly ":--:") columns)))
-                       "\n")
-       accessors (for [[x _] columns] (apply comp (reverse x))) ;;Reverse so composition is leftmost-first
-       row-fn (apply juxt accessors)
-       rows (map row-fn coll)
-       formatted (flatten (interpose "\n" rows))
-       ](string/join "|" (cons  columnsdef formatted))))
+
+(defn- update
+  [streaks [author timestamp]]
+  (if-let
+    [entry (get streaks author)]
+    (if (and entry (time/after?  timestamp (:last-seen entry)))
+      [author (->streak (inc (:streak entry)) (max (inc (:streak entry)) (:max entry)) timestamp)])
+    [author (->streak 1 1 timestamp)]
+    ))
+
+
+
+(defn update-streaks
+  "Update a streaks map based on a collection of names/timestamp pairs."
+  [streaks comments]
+  (into streaks (map (partial update streaks) comments)))
+
+(defn save-streaks-file [streaks]
+  (let[deflatable (into {} (map #(update-in % [1 :last-seen] coerce/to-date) streaks) )
+       deflated (pr-str deflatable)]
+    (spit "resources/streaks.edn" deflated)))
+(save-streaks-file (load-streaks-file))

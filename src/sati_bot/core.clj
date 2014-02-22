@@ -1,7 +1,9 @@
 (ns sati-bot.core
   (:require [clj-time.core :as time]
             [clojure.edn :as edn]
-            [sati-bot.reddit :as reddit])
+            [clojure.string :as string]
+            [sati-bot.reddit :as reddit]
+            [sati-bot.streaks :as streaks])
   (:import [java.util.concurrent ScheduledThreadPoolExecutor TimeUnit])
   (:gen-class)
   )
@@ -56,21 +58,44 @@
       3 "rd"
       "th")))
 
+(defn- markdown-table
+  "Create Markdown for a table displaying a collection
+  Columns defines the columns to show - give pairs of accessor sequence and display names."
+  [columns coll]
+  (let[columnsdef (str "|" (string/join "|" (concat (map second columns)
+                                                    "\n"
+                                                    ;;All columns are center aligned, for now.
+                                                    (map (constantly ":--:") columns)))
+                       "\n")
+       accessors (for [[x _] columns] (apply comp (reverse x))) ;;Reverse so composition is leftmost-first
+       row-fn (apply juxt accessors) ;;Mapped over coll gives a vector of each table row
+       rows (map row-fn coll)
+       formatted (flatten (interpose "\n" rows))
+       ](string/join "|" (cons  columnsdef formatted))))
+
+
+
 (defn checkin-title [date]
   (let[day-of-month (time/day date)
        ending (ending day-of-month)]
     (str "Daily Check-in: " (weekday-name date) ", " (month-name date) " " day-of-month ending)))
 
+(defn checkin-body [streaks]
+  (str "Welcome to all meditators! Our regulars recently include:  \n\n"
+       (markdown-table [[[first] "Name"] [[second :streak] "Streak"] [[second :max] "Best streak"]] streaks)
+       "\n\nWhy not join in?  \n\n\n
+       I am a bot. See me getting confused? Have suggestions for improvement? Swing by the [issues tracker!](https://github.com/Magos/sati_bot/issues)"
+       ))
+
 
 (defn make-checkin
   "Make a checkin post request map for a given day, defaulting to the call-time."
-  ([](make-checkin (time/now)))
-  ([date]
+  [date streaks]
    (let[adjusted (time/to-time-zone date *target-time-zone*)
         title (checkin-title adjusted)
-
+        body (checkin-body streaks)
         ]
-     (reddit/submit title *target-subreddit*))))
+     (reddit/submit title *target-subreddit* :body body)))
 
 
 (defn post-checkin
@@ -83,12 +108,24 @@
        the-time (time/to-time-zone (time/now) *target-time-zone*) ;;Get today's time
        title (checkin-title the-time) ;;Get today's title.
        last-posts (reddit/get-submissions "sati_bot")
+       newest-id (-> last-posts first :data :id)
+       commenters (-> (reddit/comments *target-subreddit* newest-id)
+                      reddit/request
+                      reddit/get-commenters)
+       commenter-set (into #{} (map first commenters))
+       streaks (streaks/load-streaks-file)
+       updated (streaks/update-streaks streaks commenters)
        used-titles (into #{} (map (comp :title :data ) last-posts)) ;;Get the last few titles posted.
+       checkin-request (make-checkin (time/now) (filter #(contains? commenter-set (first %)) updated))
        ]
     (if (contains? used-titles title) ;;If we've posted today
       nil ;; then no-op.
-      (reddit/request (make-checkin) session-data) ;;Else actually make the post.
+      ;;Else actually make the post.
+      (do (streaks/save-streaks-file updated)
+        (reddit/request checkin-request session-data)
+        )
       )))
+
 
 (defn- start-of-day
   "Get the start of the given day."
