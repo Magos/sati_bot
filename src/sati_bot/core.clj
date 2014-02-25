@@ -10,6 +10,7 @@
 
 (def ^:dynamic *target-time-zone* (time/time-zone-for-offset +12))
 (def ^:dynamic *target-subreddit* "dailypractice")
+(defonce ^:dynamic *executor* nil)
 
 (defn load-credentials
   "Get login-credentials from an EDN file."
@@ -145,5 +146,6 @@
        ;;Exploit that Clojure fns implement Runnable and can run directly in Executors.
 
        ]
+    (def *executor* executor)
     (.schedule executor ^Runnable schedule-fn initial-delay TimeUnit/SECONDS)))
 
