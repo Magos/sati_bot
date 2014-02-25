@@ -146,6 +146,5 @@
        ;;Exploit that Clojure fns implement Runnable and can run directly in Executors.
 
        ]
-    (def *executor* executor)
+    (alter-var-root *executor* (constantly executor))
     (.schedule executor ^Runnable schedule-fn initial-delay TimeUnit/SECONDS)))
-
