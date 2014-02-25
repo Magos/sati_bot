@@ -62,16 +62,16 @@
   "Create Markdown for a table displaying a collection
   Columns defines the columns to show - give pairs of accessor sequence and display names."
   [columns coll]
-  (let[columnsdef (str "|" (string/join "|" (concat (map second columns)
-                                                    "\n"
-                                                    ;;All columns are center aligned, for now.
-                                                    (map (constantly ":--:") columns)))
+  (let[columns-def (str "|" (clojure.string/join "|" (concat (map second columns)
+                                                            "\n"
+                                                            ;;All columns are center aligned, for now.
+                                                            (map (constantly ":--:") columns)))
                        "\n")
        accessors (for [[x _] columns] (apply comp (reverse x))) ;;Reverse so composition is leftmost-first
-       row-fn (apply juxt accessors) ;;Mapped over coll gives a vector of each table row
-       rows (map row-fn coll)
-       formatted (flatten (interpose "\n" rows))
-       ](string/join "|" (cons  columnsdef formatted))))
+       columns (for [x accessors] (map x coll))
+       item-separated (conj (vec columns) (repeat "\n"))
+       cells (apply interleave item-separated)
+       ](clojure.string/join "|" (cons columns-def cells))))
 
 
 
@@ -95,7 +95,7 @@
         title (checkin-title adjusted)
         body (checkin-body streaks)
         ]
-     (reddit/submit title *target-subreddit* :body body)))
+     (reddit/submit title *target-subreddit* :text body)))
 
 
 (defn post-checkin
