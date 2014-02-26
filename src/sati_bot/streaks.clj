@@ -29,11 +29,11 @@
   [streaks [author timestamp]]
   (if-let
     [entry (get streaks author)]
-    (if (and entry (time/after?  timestamp (:last-seen entry)))
-      [author (->streak (inc (:streak entry)) (max (inc (:streak entry)) (:max entry)) timestamp)])
+    (let[interval (time/interval (:last-seen entry) (time/now))
+         streaklength (if (> 36 (time/in-hours interval)) (-> entry :streak inc) 1)]
+      [author (->streak streaklength (max (:max entry) streaklength) timestamp)])
     [author (->streak 1 1 timestamp)]
     ))
-
 
 
 (defn update-streaks
@@ -45,4 +45,3 @@
   (let[deflatable (into {} (map #(update-in % [1 :last-seen] coerce/to-date) streaks) )
        deflated (pr-str deflatable)]
     (spit "resources/streaks.edn" deflated)))
-(save-streaks-file (load-streaks-file))
