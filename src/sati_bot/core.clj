@@ -84,8 +84,8 @@
 (defn checkin-body [streaks]
   (str "Welcome to all meditators! Our regulars recently include:  \n\n"
        (markdown-table [[[first] "Name"] [[second :streak] "Streak"] [[second :max] "Best streak"]] streaks)
-       "\n\nWhy not join in?  \n\n\n
-       I am a bot. See me getting confused? Have suggestions for improvement? Swing by the [issues tracker!](https://github.com/Magos/sati_bot/issues)"
+       "\n\nWhy not join in?  \n\n"
+       "I am a bot. See me getting confused? Have suggestions for improvement? Swing by the [issues tracker!](https://github.com/Magos/sati_bot/issues)"
        ))
 
 
