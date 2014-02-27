@@ -98,6 +98,14 @@
         ]
      (reddit/submit title *target-subreddit* :text body)))
 
+(defn get-participants
+  "Takes a list of recent posts, sends more requests to find author/username
+  pairs for all the participants of the last 2 posts."
+  [posts]
+  (->> posts (take 2) (map (comp :id :data))
+  (map (partial reddit/comments *target-subreddit*))
+  (map (comp reddit/get-commenters reddit/request))
+  (apply concat)))
 
 (defn post-checkin
   "Perform a daily check-in:
@@ -109,10 +117,7 @@
        the-time (time/to-time-zone (time/now) *target-time-zone*) ;;Get today's time
        title (checkin-title the-time) ;;Get today's title.
        last-posts (reddit/get-submissions "sati_bot")
-       newest-id (-> last-posts first :data :id)
-       commenters (-> (reddit/comments *target-subreddit* newest-id)
-                      reddit/request
-                      reddit/get-commenters)
+       commenters (get-participants last-posts)
        commenter-set (into #{} (map first commenters))
        streaks (streaks/load-streaks-file)
        updated (streaks/update-streaks streaks commenters)

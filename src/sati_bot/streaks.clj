@@ -28,10 +28,11 @@
 (defn- update
   [streaks [author timestamp]]
   (if-let
-    [entry (get streaks author)]
-    (let[interval (time/interval (:last-seen entry) (time/now))
-         streaklength (if (> 36 (time/in-hours interval)) (-> entry :streak inc) 1)]
-      [author (->streak streaklength (max (:max entry) streaklength) timestamp)])
+    [{:keys [last-seen streak] :as entry} (get streaks author)]
+    (let[interval (time/interval last-seen timestamp)
+         streaklength (if (< 20 (time/in-hours interval) 30) (inc streak) 1)]
+      (when (time/after? timestamp last-seen)
+        [author (->streak streaklength (max (:max entry) streaklength) timestamp)]))
     [author (->streak 1 1 timestamp)]
     ))
 
@@ -40,6 +41,7 @@
   "Update a streaks map based on a collection of names/timestamp pairs."
   [streaks comments]
   (into streaks (map (partial update streaks) comments)))
+
 
 (defn save-streaks-file [streaks]
   (let[deflatable (into {} (map #(update-in % [1 :last-seen] coerce/to-date) streaks) )
