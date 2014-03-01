@@ -30,7 +30,7 @@
   (if-let
     [{:keys [last-seen streak] :as entry} (get streaks author)]
     (let[interval (time/interval last-seen timestamp)
-         streaklength (if (< 20 (time/in-hours interval) 30) (inc streak) 1)]
+         streaklength (if (< 20 (time/in-hours interval) 56) (inc streak) 1)]
       (when (time/after? timestamp last-seen)
         [author (->streak streaklength (max (:max entry) streaklength) timestamp)]))
     [author (->streak 1 1 timestamp)]
